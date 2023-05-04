@@ -1,0 +1,22 @@
+    for i in range(rows):
+        for j in range(cols):
+            x = int(round(j * dx)) - 16
+            y = int(round(i * dy)) - 16
+            # calculate average color of image inside square
+            square = img[y:y + size, x:x + size, :]
+            average_color = np.mean(np.mean(square, axis=0), axis=0)
+
+            # set rectangle color to average color
+            color = tuple(average_color.astype(int).tolist())
+
+            # fill rectangle with new color
+            cv2.rectangle(img, (x, y), (x + size, y + size), color=color, thickness=-1)
+
+
+
+
+    for i in range(rows):
+        for j in range(cols):
+            x = int(round(j * dx)) + 16
+            y = int(round(i * dy)) + 16
+            cv2.rectangle(img, (x, y), (x + size, y + size), color=(0, 255, 0), thickness=1)
