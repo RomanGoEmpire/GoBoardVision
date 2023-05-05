@@ -14,6 +14,7 @@ dragging = False
 M = None
 
 max_size = int(transformed_size / 20)
+half_max_size = int(max_size/2)
 max_value = 255
 max_sharpen = 30
 max_alpha = 40
@@ -82,8 +83,8 @@ cv2.createTrackbar('sharpen', 'Black Image', black_sharpen, max_sharpen, on_thre
 cv2.createTrackbar('alpha', 'Black Image', black_alpha_value, max_alpha, on_threshold)
 cv2.createTrackbar('beta', 'Black Image', black_beta_value, max_beta, on_threshold)
 
-cv2.namedWindow('Grid')
-cv2.createTrackbar('size', 'Grid', size, max_size, on_threshold)
+cv2.namedWindow('Grid Image')
+cv2.createTrackbar('size', 'Grid Image', size, max_size, on_threshold)
 
 
 def get_white(image):
@@ -129,32 +130,35 @@ def get_black(image):
 def draw_green_grid(img):
     new_image = img.copy()
     h, w, _ = img.shape
-    offset = 15 - int(round(size / 2))
+    offset = half_max_size - int(round(size / 2))
     rows, cols = grid_shape
     dy, dx = int((h - (h / 20)) / rows), int((w - (w / 20)) / cols)
 
     for i in range(rows):
         for j in range(cols):
-            x = j * dx + 15 + offset
-            y = i * dy + 15 + offset
+            x = j * dx + half_max_size + offset
+            y = i * dy + half_max_size + offset
             cv2.rectangle(new_image, (x, y), (x + size, y + size), color=(0, 255, 0), thickness=1)
     return new_image
 
 
 def color_identifed_grid(img):
     h, w, _ = img.shape
+    offset = half_max_size - int(round(size / 2))
     rows, cols = grid_shape
     dy, dx = int((h - (h / 20)) / rows), int((w - (w / 20)) / cols)
 
     # create a new image with the same dimensions as the original image
     new_img = np.zeros_like(img)
     # Draw a rectangle on the image with blue color and thickness 10
-    cv2.rectangle(new_img, (0, 0), (h, w), (97, 147, 177), 1000)
+    cv2.rectangle(new_img, (0, 0), (h, w), color=(97, 147, 177), thickness=-1)
 
     for i in range(rows):
         for j in range(cols):
-            x = j * dx + 15
-            y = i * dy + 15
+            x = j * dx + half_max_size + offset
+            y = i * dy + half_max_size + offset
+            other_x = j * dx + half_max_size
+            other_y = i * dy + half_max_size
             # calculate average color of image inside square
             square = img[y:y + size, x:x + size, :]
             average_color = np.mean(np.mean(square, axis=0), axis=0)
@@ -164,6 +168,39 @@ def color_identifed_grid(img):
             # fill rectangle with new color
             cv2.rectangle(new_img, (x, y), (x + size, y + size), color=color, thickness=-1)
     return new_img
+
+
+def color_identifed_grid_greyscale(img):
+    h, w = img.shape
+    rows, cols = grid_shape
+    dy, dx = int((h - (h / 20)) / rows), int((w - (w / 20)) / cols)
+    offset = half_max_size - int(round(size / 2))
+    # create a new image with the same dimensions as the original image
+    new_img = np.zeros_like(img)
+    # Draw a rectangle on the image with blue color and thickness 10
+    cv2.rectangle(new_img, (0, 0), (h, w), (97, 147, 177), 1000)
+
+    for i in range(rows):
+        for j in range(cols):
+            x = j * dx + half_max_size + offset
+            y = i * dy + half_max_size + offset
+            other_x = j * dx + half_max_size
+            other_y = i * dy + half_max_size
+            # calculate average color of image inside square
+            square = img[y:y + size, x:x + size]
+            average_color = np.mean(np.mean(square, axis=0), axis=0)
+
+            # set rectangle color to average color
+            color = average_color.astype(int).tolist()
+            color = closest_color(color)
+            # fill rectangle with new color
+            cv2.rectangle(new_img, (other_x, other_y), (other_x + max_size, other_y + max_size), color=color, thickness=-1)
+            cv2.rectangle(new_img, (other_x, other_y), (other_y + max_size, other_y + max_size), color=127, thickness=1)
+    return new_img
+
+
+def closest_color(color):
+    return 255 if color >= 127 else 0
 
 
 if __name__ == '__main__':
@@ -182,16 +219,16 @@ if __name__ == '__main__':
             transformed = cv2.warpPerspective(frame, M, (transformed_size, transformed_size))
             white = get_white(transformed)
             black = get_black(transformed)
-            size = cv2.getTrackbarPos('size', 'Grid')
+            size = cv2.getTrackbarPos('size', 'Grid Image')
             align = draw_green_grid(transformed)
             identified = color_identifed_grid(transformed)
-            #identified_black = color_identifed_grid(black)
-            #identified_white = color_identifed_grid(white)
+            identified_black = color_identifed_grid_greyscale(black)
+            identified_white = color_identifed_grid_greyscale(white)
             # cv2.imshow('transformed', transformed)
             cv2.imshow('aligner', align)
             cv2.imshow('identified', identified)
-            #cv2.imshow('identified black', identified_black)
-            #cv2.imshow('identified white', identified_white)
+            cv2.imshow('identified black', identified_black)
+            cv2.imshow('identified white', identified_white)
             cv2.imshow('white', white)
             cv2.imshow('black', black)
 
