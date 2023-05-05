@@ -3,12 +3,30 @@ import numpy as np
 
 circle_color = (0, 255, 0)
 line_color = (255, 0, 0)
+grid_shape = (19, 19)
 
 points = [(200, 200), (800, 200), (800, 450), (200, 450)]
-points_transformed = [[0, 0], [600, 0], [600, 600], [0, 600]]
+transformed_size = 400
+points_transformed = [[0, 0], [transformed_size, 0], [transformed_size, transformed_size], [0, transformed_size]]
+size = 1
 selected_point = None
 dragging = False
 M = None
+
+max_size = int(transformed_size / 20)
+max_value = 255
+max_sharpen = 30
+max_alpha = 40
+max_beta = 100
+
+white_threshold = 254
+black_threshold = 254
+white_sharpen = 15
+white_alpha_value = 15
+white_beta_value = 0
+black_sharpen = 15
+black_alpha_value = 15
+black_beta_value = 0
 
 
 def initialize_cam():
@@ -47,21 +65,6 @@ def draw_rectangle_with_corner_points():
         cv2.circle(frame, (px, py), 3, circle_color, -1)
 
 
-max_value = 255
-max_sharpen = 30
-max_alpha = 40
-max_beta = 100
-
-white_threshold = 254
-black_threshold = 254
-white_sharpen = 15
-white_alpha_value = 15
-white_beta_value = 0
-black_sharpen = 15
-black_alpha_value = 15
-black_beta_value = 0
-
-
 def on_threshold(val):
     # do something with the trackbar value
     pass
@@ -78,6 +81,9 @@ cv2.createTrackbar('threshold_black', 'Black Image', black_threshold, max_value,
 cv2.createTrackbar('sharpen', 'Black Image', black_sharpen, max_sharpen, on_threshold)
 cv2.createTrackbar('alpha', 'Black Image', black_alpha_value, max_alpha, on_threshold)
 cv2.createTrackbar('beta', 'Black Image', black_beta_value, max_beta, on_threshold)
+
+cv2.namedWindow('Grid')
+cv2.createTrackbar('size', 'Grid', size, max_size, on_threshold)
 
 
 def get_white(image):
@@ -120,6 +126,46 @@ def get_black(image):
     return adjusted_img
 
 
+def draw_green_grid(img):
+    new_image = img.copy()
+    h, w, _ = img.shape
+    offset = 15 - int(round(size / 2))
+    rows, cols = grid_shape
+    dy, dx = int((h - (h / 20)) / rows), int((w - (w / 20)) / cols)
+
+    for i in range(rows):
+        for j in range(cols):
+            x = j * dx + 15 + offset
+            y = i * dy + 15 + offset
+            cv2.rectangle(new_image, (x, y), (x + size, y + size), color=(0, 255, 0), thickness=1)
+    return new_image
+
+
+def color_identifed_grid(img):
+    h, w, _ = img.shape
+    rows, cols = grid_shape
+    dy, dx = int((h - (h / 20)) / rows), int((w - (w / 20)) / cols)
+
+    # create a new image with the same dimensions as the original image
+    new_img = np.zeros_like(img)
+    # Draw a rectangle on the image with blue color and thickness 10
+    cv2.rectangle(new_img, (0, 0), (h, w), (97, 147, 177), 1000)
+
+    for i in range(rows):
+        for j in range(cols):
+            x = j * dx + 15
+            y = i * dy + 15
+            # calculate average color of image inside square
+            square = img[y:y + size, x:x + size, :]
+            average_color = np.mean(np.mean(square, axis=0), axis=0)
+
+            # set rectangle color to average color
+            color = tuple(average_color.astype(int).tolist())
+            # fill rectangle with new color
+            cv2.rectangle(new_img, (x, y), (x + size, y + size), color=color, thickness=-1)
+    return new_img
+
+
 if __name__ == '__main__':
 
     cap = initialize_cam()
@@ -133,10 +179,19 @@ if __name__ == '__main__':
         ret, frame = cap.read()
 
         if M is not None:
-            transformed = cv2.warpPerspective(frame, M, (600, 600))
-            cv2.imshow('transformed', transformed)
+            transformed = cv2.warpPerspective(frame, M, (transformed_size, transformed_size))
             white = get_white(transformed)
             black = get_black(transformed)
+            size = cv2.getTrackbarPos('size', 'Grid')
+            align = draw_green_grid(transformed)
+            identified = color_identifed_grid(transformed)
+            #identified_black = color_identifed_grid(black)
+            #identified_white = color_identifed_grid(white)
+            # cv2.imshow('transformed', transformed)
+            cv2.imshow('aligner', align)
+            cv2.imshow('identified', identified)
+            #cv2.imshow('identified black', identified_black)
+            #cv2.imshow('identified white', identified_white)
             cv2.imshow('white', white)
             cv2.imshow('black', black)
 
