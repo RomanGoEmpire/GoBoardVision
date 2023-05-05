@@ -4,7 +4,7 @@ import numpy as np
 
 # Define the mouse callback function
 def move_point(event, x, y, flags, param):
-    global points, selected_point, dragging, M
+    global POINTS, selected_point, dragging, M
     if event == cv2.EVENT_LBUTTONDOWN:
         # Check if the mouse click is inside one of the points
         for i, (px, py) in enumerate(points):
@@ -101,7 +101,7 @@ cv2.namedWindow('size')
 cv2.createTrackbar('size', 'size', 0, 30, on_trackbar)
 
 # Initialize the points and the transformation matrix
-points = [(200, 200), (800, 200), (800, 450), (200, 450)]
+POINTS = [(200, 200), (800, 200), (800, 450), (200, 450)]
 selected_point = None
 dragging = False
 M = None
@@ -125,11 +125,11 @@ while True:
         cv2.imshow('grid', grid)
 
     # Draw the lines between the points
-    for i in range(len(points)):
-        cv2.line(frame, points[i], points[(i + 1) % len(points)], (255, 0, 0), 2)
+    for i in range(len(POINTS)):
+        cv2.line(frame, POINTS[i], POINTS[(i + 1) % len(POINTS)], (255, 0, 0), 2)
 
     # Draw the points on the frame
-    for px, py in points:
+    for px, py in POINTS:
         cv2.circle(frame, (px, py), 5, (0, 255, 0), -1)
 
     # Display the frame on the screen
