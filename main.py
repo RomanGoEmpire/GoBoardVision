@@ -3,7 +3,27 @@ import numpy as np
 
 WINDOW_SIZE = 400
 ROWS, COLS = 19, 19
-POINTS = [(200, 200), (800, 200), (800, 450), (200, 450)]
+FILE = 'points.txt'
+
+
+def save_points_to_file():
+    with open(FILE, 'w') as file:
+        for point in POINTS:
+            file.write(f'{point[0]},{point[1]}\n')
+    print('saved points')
+
+
+def load_points_from_file():
+    points = []
+    with open(FILE, 'r') as file:
+        for line in file:
+            x, y = line.strip().split(',')
+            points.append((int(x), int(y)))
+    return points
+
+
+POINTS = load_points_from_file()
+
 POINT_TRANSFORMED = [[0, 0], [WINDOW_SIZE, 0], [WINDOW_SIZE, WINDOW_SIZE], [0, WINDOW_SIZE]]
 MAX_SIZE_TILE = int(WINDOW_SIZE / 20)
 HALF_MAX_SIZE = int(MAX_SIZE_TILE / 2)
@@ -244,59 +264,107 @@ def drawn_board(img):
     return new_img
 
 
-def is_valid_board():
+def get_added_and_removed(changes):
+    added = 0
+    removed = 0
+    for change in changes:
+        move_color = get_color(change)
+        if move_color:
+            removed += 1
+            print(f'removed {move_color} from {change}')
+        else:
+            added += 1
+            print(f'added {move_color} to {change}')
+    return added, removed
+
+
+def is_valid_board(changes):
     global frame_counter, next_board
+
     if not np.array_equal(recording_board, next_board):
         frame_counter = 0
         next_board = recording_board.copy()
         return False
+
     if frame_counter < 10:
         frame_counter += 1
         return False
 
-    no_changed_frames = frame_counter == 10
-    is_valid_black_turn = is_blacks_turn and count_black() == black_stones + 1 and count_white() == white_stones
-    is_valid_white_turn = not is_blacks_turn and count_white() == white_stones + 1 and count_black() == black_stones
-    return no_changed_frames and (is_valid_black_turn or is_valid_white_turn)
+    if len(changes) == 1:
+        is_valid_black_turn = is_blacks_turn and \
+                              count_black_on_board() + black_captured == black_stones + 1 and \
+                              count_white_on_board() + white_captured == white_stones
+        is_valid_white_turn = not is_blacks_turn and \
+                              count_white_on_board() + white_captured == white_stones + 1 and \
+                              count_black_on_board() + black_captured == black_stones
+        return is_valid_black_turn or is_valid_white_turn
+    if len(changes) > 1:
+        added, removed = get_added_and_removed(changes)
+        if added == 1:
+            is_valid_black_turn = is_blacks_turn and \
+                                  count_black_on_board() + black_captured == black_stones + 1 and \
+                                  count_white_on_board() + white_captured + removed == white_stones
+            is_valid_white_turn = not is_blacks_turn and \
+                                  count_white_on_board() + white_captured == white_stones + 1 and \
+                                  count_black_on_board() + black_captured + removed == black_stones
+            return is_valid_black_turn or is_valid_white_turn
+        else:
+            print('something really weird is happening')
+            print(added, removed)
+    return False
 
 
-def update_board():
-    global black_stones, white_stones, is_blacks_turn, last_board
+def get_color(t):
+    for move in game_history:
+        if tuple(t) == move[1]:
+            return move[0]
+    return None
+
+
+def update_board(changes):
+    global black_stones, black_captured, white_stones, white_captured, is_blacks_turn, last_board
+    _, removed = get_added_and_removed(changes)
     if is_blacks_turn:
         black_stones += 1
+        white_captured += removed
         is_blacks_turn = False
     else:
         white_stones += 1
+        black_captured += removed
         is_blacks_turn = True
     last_board = next_board.copy()
 
 
-def count_black():
+def count_black_on_board():
     return np.count_nonzero(recording_board == 1)
 
 
-def count_white():
+def count_white_on_board():
     return np.count_nonzero(recording_board == 2)
 
 
-def get_last_move():
-    row, col = np.where(last_board != next_board)
-    return row, col
+def get_board_changes():
+    return np.column_stack(np.where(last_board != next_board))
 
 
-def save_last_move(row, col):
+def get_last_move_position(changes):
+    for change in changes:
+        move_color = get_color(change)
+        if not move_color:
+            return tuple(change)
+
+
+def save_last_move(changes):
     global game_history
+    position = get_last_move_position(changes)
     color = 'W'
     if is_blacks_turn:
         color = 'B'
-    game_history += [color, (row[0] + 1, col[0] + 1)]
+    game_history.append([color, position])
 
 
-def print_last_move(row, col):
-    if is_blacks_turn:
-        print(f"Black played {row[0] + 1},{col[0] + 1}")
-    else:
-        print(f"White played {row[0] + 1},{col[0] + 1}")
+def print_last_move():
+    print(game_history[-1])
 
 
 if __name__ == '__main__':
@@ -331,11 +399,11 @@ if __name__ == '__main__':
             identified_white = color_identifed_grid_greyscale(white, False)
 
             size = cv2.getTrackbarPos('size', 'Grid Image')
-            if analyzing and is_valid_board():
-                row, col = get_last_move()
-                update_board()
-                save_last_move(row, col)
-                print_last_move(row, col)
+            changes = get_board_changes()
+            if analyzing and is_valid_board(changes):
+                update_board(changes)
+                save_last_move(changes)
+                print_last_move()
                 final_board = drawn_board(transformed)
             # cv2.imshow('transformed', transformed)
             cv2.imshow('aligner', align)
@@ -355,6 +423,8 @@ if __name__ == '__main__':
             if analyzing:
                 print('stop analysis')
                 print(game_history)
+                print(f"white: {white_stones}, captured: {black_captured}")
+                print(f"black: {black_stones}, captured: {white_captured}")
             else:
                 print('start analysis')
             analyzing = not analyzing
@@ -364,3 +434,4 @@ if __name__ == '__main__':
 
     cap.release()
     cv2.destroyAllWindows()
+    save_points_to_file()
