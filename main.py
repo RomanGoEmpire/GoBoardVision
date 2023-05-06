@@ -5,6 +5,8 @@ WINDOW_SIZE = 400
 ROWS, COLS = 19, 19
 POINTS = [(200, 200), (800, 200), (800, 450), (200, 450)]
 POINT_TRANSFORMED = [[0, 0], [WINDOW_SIZE, 0], [WINDOW_SIZE, WINDOW_SIZE], [0, WINDOW_SIZE]]
+MAX_SIZE_TILE = int(WINDOW_SIZE / 20)
+HALF_MAX_SIZE = int(MAX_SIZE_TILE / 2)
 
 color_circle = (0, 255, 0)
 color_line = (255, 0, 0)
@@ -16,10 +18,6 @@ color_white = (255, 255, 255)  # RGB value for white
 selected_point = None
 dragging = False
 M = None
-
-MAX_SIZE_TILE = int(WINDOW_SIZE / 20)
-print(MAX_SIZE_TILE)
-HALF_MAX_SIZE = int(MAX_SIZE_TILE / 2)
 
 max_value = 255
 max_sharpen = 30
@@ -44,8 +42,12 @@ next_board = initial_board.copy()
 frame_counter = 0
 
 black_stones = 0
+black_captured = 0
 white_stones = 0
+white_captured = 0
 is_blacks_turn = True
+
+game_history = []
 
 
 def initialize_cam():
@@ -251,8 +253,11 @@ def is_valid_board():
     if frame_counter < 10:
         frame_counter += 1
         return False
-    return frame_counter == 10 and (is_blacks_turn and count_black() == black_stones + 1) or (
-            not is_blacks_turn and count_white() == white_stones + 1)
+
+    no_changed_frames = frame_counter == 10
+    is_valid_black_turn = is_blacks_turn and count_black() == black_stones + 1 and count_white() == white_stones
+    is_valid_white_turn = not is_blacks_turn and count_white() == white_stones + 1 and count_black() == black_stones
+    return no_changed_frames and (is_valid_black_turn or is_valid_white_turn)
 
 
 def update_board():
@@ -263,7 +268,6 @@ def update_board():
     else:
         white_stones += 1
         is_blacks_turn = True
-    get_last_move()
     last_board = next_board.copy()
 
 
@@ -277,7 +281,22 @@ def count_white():
 
 def get_last_move():
     row, col = np.where(last_board != next_board)
-    print(row - 1, col -1)
+    return row, col
+
+
+def save_last_move(row, col):
+    global game_history
+    color = 'W'
+    if is_blacks_turn:
+        color = 'B'
+    game_history += [color, (row[0] + 1, col[0] + 1)]
+
+
+def print_last_move(row, col):
+    if is_blacks_turn:
+        print(f"Black played {row[0] + 1},{col[0] + 1}")
+    else:
+        print(f"White played {row[0] + 1},{col[0] + 1}")
 
 
 if __name__ == '__main__':
@@ -313,7 +332,10 @@ if __name__ == '__main__':
 
             size = cv2.getTrackbarPos('size', 'Grid Image')
             if analyzing and is_valid_board():
+                row, col = get_last_move()
                 update_board()
+                save_last_move(row, col)
+                print_last_move(row, col)
                 final_board = drawn_board(transformed)
             # cv2.imshow('transformed', transformed)
             cv2.imshow('aligner', align)
@@ -332,6 +354,7 @@ if __name__ == '__main__':
         if key == ord('s'):
             if analyzing:
                 print('stop analysis')
+                print(game_history)
             else:
                 print('start analysis')
             analyzing = not analyzing
