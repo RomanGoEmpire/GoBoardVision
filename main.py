@@ -40,23 +40,20 @@ dragging = False
 M = None
 
 max_value = 255
-max_sharpen = 30
 max_alpha = 40
 max_beta = 100
 
 size = 1
 white_threshold = 254
 black_threshold = 254
-white_sharpen = 15
 white_alpha_value = 15
 white_beta_value = 0
-black_sharpen = 15
 black_alpha_value = 15
 black_beta_value = 0
 
 # black = 1, white = 2
-initial_board = np.zeros((ROWS, COLS), dtype=np.uint8)
-last_board = np.zeros((ROWS, COLS), dtype=np.uint8)
+initial_board = np.zeros((ROWS, COLS))
+last_board = np.zeros((ROWS, COLS))
 recording_board = initial_board.copy()
 next_board = initial_board.copy()
 frame_counter = 0
@@ -131,23 +128,14 @@ ALL_GRID_POINTS = calculate_positions()
 
 
 def create_all_slider():
-    cv2.namedWindow('White Image', )
-    cv2.resizeWindow("White Image", 400, 200)
-    cv2.createTrackbar('threshold_white', 'White Image', white_threshold, max_value, on_threshold)
-    cv2.createTrackbar('sharpen', 'White Image', white_sharpen, max_sharpen, on_threshold)
-    cv2.createTrackbar('alpha', 'White Image', white_alpha_value, max_alpha, on_threshold)
-    cv2.createTrackbar('beta', 'White Image', white_beta_value, max_beta, on_threshold)
-
-    cv2.namedWindow('Black Image')
-    cv2.resizeWindow("Black Image", 400, 200)
-    cv2.createTrackbar('threshold_black', 'Black Image', black_threshold, max_value, on_threshold)
-    cv2.createTrackbar('sharpen', 'Black Image', black_sharpen, max_sharpen, on_threshold)
-    cv2.createTrackbar('alpha', 'Black Image', black_alpha_value, max_alpha, on_threshold)
-    cv2.createTrackbar('beta', 'Black Image', black_beta_value, max_beta, on_threshold)
-
-    cv2.namedWindow('Grid Image')
-    cv2.resizeWindow("Grid Image", 400, 200)
-    cv2.createTrackbar('size', 'Grid Image', size, MAX_SIZE_TILE, on_threshold)
+    slider = cv2.namedWindow('Slider')
+    cv2.resizeWindow("Slider", 400, 400)
+    cv2.createTrackbar('white_alpha', 'Slider', white_alpha_value, max_alpha, on_threshold)
+    cv2.createTrackbar('white_beta', 'Slider', white_beta_value, max_beta, on_threshold)
+    cv2.createTrackbar('black_alpha', 'Slider', black_alpha_value, max_alpha, on_threshold)
+    cv2.createTrackbar('black_beta', 'Slider', black_beta_value, max_beta, on_threshold)
+    cv2.createTrackbar('size', 'Slider', size, MAX_SIZE_TILE, on_threshold)
+    return slider
 
 
 def get_white(image):
@@ -155,15 +143,12 @@ def get_white(image):
     gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
     gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    sharpen = cv2.getTrackbarPos('sharpen', 'White Image') / 10
-    sharpened = cv2.addWeighted(gray, sharpen, gray_blur, -0.5, 0)
-
+    sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
     # Adjust the brightness and contrast
-    alpha = cv2.getTrackbarPos('alpha', 'White Image') / 10
-    beta = cv2.getTrackbarPos('beta', 'White Image')
+    alpha = cv2.getTrackbarPos('white_alpha', 'Slider') / 10
+    beta = cv2.getTrackbarPos('white_beta', 'Slider')
     adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
-    low = cv2.getTrackbarPos('threshold_white', 'White Image')
-    ret, thresh = cv2.threshold(adjusted_img, low, 255, cv2.THRESH_BINARY)
+    ret, thresh = cv2.threshold(adjusted_img, white_threshold, 255, cv2.THRESH_BINARY)
     thresh = np.invert(thresh)
     adjusted_img[thresh == 255] = 0
     return adjusted_img
@@ -174,17 +159,13 @@ def get_black(image):
     gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
     gray = cv2.bitwise_not(gray)
     gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    sharpen = cv2.getTrackbarPos('sharpen', 'Black Image') / 10
-    sharpened = cv2.addWeighted(gray, sharpen, gray_blur, -0.5, 0)
+    sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
 
     # Adjust the brightness and contrast
-    alpha = cv2.getTrackbarPos('alpha', 'Black Image') / 10
-    beta = cv2.getTrackbarPos('beta', 'Black Image')
+    alpha = cv2.getTrackbarPos('black_alpha', 'Slider') / 10
+    beta = cv2.getTrackbarPos('black_beta', 'Slider')
     adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
-
-    low = cv2.getTrackbarPos('threshold_black', 'Black Image')
-
-    ret, thresh = cv2.threshold(adjusted_img, low, 255, cv2.THRESH_BINARY)
+    ret, thresh = cv2.threshold(adjusted_img, black_threshold, 255, cv2.THRESH_BINARY)
     thresh = np.invert(thresh)
     adjusted_img[thresh == 255] = 0
     return adjusted_img
@@ -264,17 +245,19 @@ def drawn_board(img):
     return new_img
 
 
-def get_added_and_removed(changes):
+def get_added_and_removed(positions):
     added = 0
     removed = 0
-    for change in changes:
-        move_color = get_color(change)
-        if move_color:
-            removed += 1
-            print(f'removed {move_color} from {change}')
-        else:
+    for position in positions:
+        value = get_change_at_position(position)
+        if value < 0:
+            color = "black" if value == -1 else "white"
+            print(f'added {color} to {position}')
             added += 1
-            print(f'added {move_color} to {change}')
+        else:
+            color = "black" if value == 1 else "white"
+            print(f'removed {color} from {position}')
+            removed += 1
     return added, removed
 
 
@@ -298,6 +281,7 @@ def is_valid_board(changes):
                               count_white_on_board() + white_captured == white_stones + 1 and \
                               count_black_on_board() + black_captured == black_stones
         return is_valid_black_turn or is_valid_white_turn
+
     if len(changes) > 1:
         added, removed = get_added_and_removed(changes)
         if added == 1:
@@ -308,22 +292,21 @@ def is_valid_board(changes):
                                   count_white_on_board() + white_captured == white_stones + 1 and \
                                   count_black_on_board() + black_captured + removed == black_stones
             return is_valid_black_turn or is_valid_white_turn
-        else:
-            print('something really weird is happening')
-            print(added, removed)
     return False
 
 
-def get_color(t):
-    for move in game_history:
-        if tuple(t) == move[1]:
-            return move[0]
-    return None
+def get_board_differences():
+    return last_board - next_board
 
 
-def update_board(changes):
+def get_change_at_position(position):
+    difference_board = get_board_differences()
+    return difference_board[position[0]][position[1]]
+
+
+def update_board(positions):
     global black_stones, black_captured, white_stones, white_captured, is_blacks_turn, last_board
-    _, removed = get_added_and_removed(changes)
+    _, removed = get_added_and_removed(positions)
     if is_blacks_turn:
         black_stones += 1
         white_captured += removed
@@ -332,6 +315,7 @@ def update_board(changes):
         white_stones += 1
         black_captured += removed
         is_blacks_turn = True
+    save_last_move(positions)
     last_board = next_board.copy()
 
 
@@ -343,22 +327,24 @@ def count_white_on_board():
     return np.count_nonzero(recording_board == 2)
 
 
-def get_board_changes():
+def get_changed_position():
     return np.column_stack(np.where(last_board != next_board))
 
 
-def get_last_move_position(changes):
-    for change in changes:
-        move_color = get_color(change)
-        if not move_color:
-            return tuple(change)
+def get_last_move_position(positions):
+    for position in positions:
+        value = get_change_at_position(position)
+        if value < 0:
+            return tuple(position)
+    return RuntimeError('No new added stone found')
 
 
-def save_last_move(changes):
+def save_last_move(positions):
     global game_history
-    position = get_last_move_position(changes)
+    position = get_last_move_position(positions)
     color = 'W'
-    if is_blacks_turn:
+    # since moved got already changed in update board we have to invert the boolean statement
+    if not is_blacks_turn:
         color = 'B'
     game_history.append([color, position])
 
@@ -367,10 +353,24 @@ def print_last_move():
     print(game_history[-1])
 
 
+def window_for_black_white(white, i_white, black, i_black):
+    # Resize the images to the same size (optional)
+    # img1 = cv2.resize(img1, (0, 0), None, 0.5, 0.5)
+    # img2 = cv2.resize(img2, (0, 0), None, 0.5, 0.5)
+    # img3 = cv2.resize(img3, (0, 0), None, 0.5, 0.5)
+    # img4 = cv2.resize(img4, (0, 0), None, 0.5, 0.5)
+
+    # Concatenate the images into a 2x2 grid
+    top_row = cv2.hconcat((white, black))
+    bottom_row = cv2.hconcat((i_white, i_black))
+    grid = cv2.vconcat((top_row, bottom_row))
+    return grid
+
+
 if __name__ == '__main__':
 
     cap = initialize_cam()
-    create_all_slider()
+    slider = create_all_slider()
 
     # Set the mouse callback function
     cv2.namedWindow('camera')
@@ -391,6 +391,7 @@ if __name__ == '__main__':
         draw_rectangle_with_corner_points()
 
         if M is not None:
+            size = cv2.getTrackbarPos('size', 'Slider')
             transformed = cv2.warpPerspective(frame, M, (WINDOW_SIZE, WINDOW_SIZE))
             white = get_white(transformed)
             black = get_black(transformed)
@@ -398,19 +399,17 @@ if __name__ == '__main__':
             identified_black = color_identifed_grid_greyscale(black, True)
             identified_white = color_identifed_grid_greyscale(white, False)
 
-            size = cv2.getTrackbarPos('size', 'Grid Image')
-            changes = get_board_changes()
+            changes = get_changed_position()
             if analyzing and is_valid_board(changes):
+                print(changes)
                 update_board(changes)
-                save_last_move(changes)
                 print_last_move()
                 final_board = drawn_board(transformed)
-            # cv2.imshow('transformed', transformed)
-            cv2.imshow('aligner', align)
-            cv2.imshow('identified black', identified_black)
-            cv2.imshow('identified white', identified_white)
-            cv2.imshow('white', white)
-            cv2.imshow('black', black)
+            #cv2.imshow('transformed', transformed)
+            cv2.imshow('align', align)
+
+            grid = window_for_black_white(white, identified_white, black, identified_black)
+            cv2.imshow('combined', grid)
             if final_board is not None:
                 cv2.imshow("Final", final_board)
 
