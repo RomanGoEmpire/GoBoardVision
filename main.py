@@ -27,7 +27,9 @@ POINTS = load_points_from_file()
 POINT_TRANSFORMED = [[0, 0], [WINDOW_SIZE, 0], [WINDOW_SIZE, WINDOW_SIZE], [0, WINDOW_SIZE]]
 MAX_SIZE_TILE = int(WINDOW_SIZE / 20)
 HALF_MAX_SIZE = int(MAX_SIZE_TILE / 2)
-
+left_star_point = 3 * MAX_SIZE_TILE
+middle_star_point = 9 * MAX_SIZE_TILE
+right_star_point = 15 * MAX_SIZE_TILE
 color_circle = (0, 255, 0)
 color_line = (255, 0, 0)
 
@@ -221,6 +223,23 @@ def get_board_grid(img):
                  color_black, 1)
         cv2.line(img, (distance, MAX_SIZE_TILE), (distance, WINDOW_SIZE - MAX_SIZE_TILE),
                  color_black, 1)
+        if i == 3:
+            cv2.circle(img, (left_star_point + MAX_SIZE_TILE, left_star_point + MAX_SIZE_TILE), 3, color_black, -1)
+            cv2.circle(img, (left_star_point + MAX_SIZE_TILE, middle_star_point + MAX_SIZE_TILE), 3, color_black, -1)
+            cv2.circle(img, (left_star_point + MAX_SIZE_TILE, right_star_point + MAX_SIZE_TILE), 3, color_black, -1)
+        if i == 9:
+            cv2.circle(img, (middle_star_point + MAX_SIZE_TILE, left_star_point + MAX_SIZE_TILE), 3, color_black, -1)
+            cv2.circle(img, (middle_star_point + MAX_SIZE_TILE, middle_star_point + MAX_SIZE_TILE), 3, color_black,
+                       -1)
+            cv2.circle(img, (middle_star_point + MAX_SIZE_TILE, right_star_point + MAX_SIZE_TILE), 3, color_black,
+                       -1)
+        if i == 15:
+            cv2.circle(img, (right_star_point + MAX_SIZE_TILE, left_star_point + MAX_SIZE_TILE), 3, color_black, -1)
+            cv2.circle(img, (right_star_point + MAX_SIZE_TILE, middle_star_point + MAX_SIZE_TILE), 3, color_black,
+                       -1)
+            cv2.circle(img, (right_star_point + MAX_SIZE_TILE, right_star_point + MAX_SIZE_TILE), 3, color_black,
+                       -1)
+
     return img
 
 
@@ -405,7 +424,7 @@ if __name__ == '__main__':
                 update_board(changes)
                 print_last_move()
                 final_board = drawn_board(transformed)
-            #cv2.imshow('transformed', transformed)
+            # cv2.imshow('transformed', transformed)
             cv2.imshow('align', align)
 
             grid = window_for_black_white(white, identified_white, black, identified_black)
