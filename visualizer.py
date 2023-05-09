@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
 
-from slider import Slider
-from settings import WINDOW_SIZE, ROWS, COLS, MAX_SIZE_TILE, POINTS, color_black, ALL_GRID_POINTS, color_brown, \
-    color_white, HALF_MAX_SIZE
+from settings import WINDOW_SIZE, ROWS, COLS, MAX_SIZE_TILE, POINTS, COLOR_BLACK, ALL_GRID_POINTS, COLOR_BROWN, \
+    COLOR_WHITE, HALF_MAX_SIZE
 
 
 class Visualizer:
@@ -98,51 +97,51 @@ class Visualizer:
         for i in range(ROWS + 1):
             distance = i * MAX_SIZE_TILE
             cv2.line(img, (MAX_SIZE_TILE, distance), (WINDOW_SIZE - MAX_SIZE_TILE, distance),
-                     color_black, 1)
+                     COLOR_BLACK, 1)
             cv2.line(img, (distance, MAX_SIZE_TILE), (distance, WINDOW_SIZE - MAX_SIZE_TILE),
-                     color_black, 1)
+                     COLOR_BLACK, 1)
             if i == 3:
                 cv2.circle(img, (self.left_star_point + MAX_SIZE_TILE, self.left_star_point + MAX_SIZE_TILE), 3,
-                           color_black, -1)
+                           COLOR_BLACK, -1)
                 cv2.circle(img, (self.left_star_point + MAX_SIZE_TILE, self.middle_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
                 cv2.circle(img, (self.left_star_point + MAX_SIZE_TILE, self.right_star_point + MAX_SIZE_TILE), 3,
-                           color_black, -1)
+                           COLOR_BLACK, -1)
             if i == 9:
                 cv2.circle(img, (self.middle_star_point + MAX_SIZE_TILE, self.left_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
                 cv2.circle(img, (self.middle_star_point + MAX_SIZE_TILE, self.middle_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
                 cv2.circle(img, (self.middle_star_point + MAX_SIZE_TILE, self.right_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
             if i == 15:
                 cv2.circle(img, (self.right_star_point + MAX_SIZE_TILE, self.left_star_point + MAX_SIZE_TILE), 3,
-                           color_black, -1)
+                           COLOR_BLACK, -1)
                 cv2.circle(img, (self.right_star_point + MAX_SIZE_TILE, self.middle_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
                 cv2.circle(img, (self.right_star_point + MAX_SIZE_TILE, self.right_star_point + MAX_SIZE_TILE), 3,
-                           color_black,
+                           COLOR_BLACK,
                            -1)
         return img
 
     def drawn_board(self, img):
         new_img = np.zeros_like(img)
 
-        cv2.rectangle(new_img, (0, 0), (WINDOW_SIZE, WINDOW_SIZE), color_brown, -1)
+        cv2.rectangle(new_img, (0, 0), (WINDOW_SIZE, WINDOW_SIZE), COLOR_BROWN, -1)
 
         new_img = self.get_board_grid(new_img)
 
         for row in range(19):
             for col in range(19):
                 if self.board_updater.recording_board[row][col] == 1:
-                    board_color = color_black
+                    board_color = COLOR_BLACK
                 elif self.board_updater.recording_board[row][col] == 2:
-                    board_color = color_white
+                    board_color = COLOR_WHITE
                 else:
                     continue
                 max_x = ALL_GRID_POINTS[MAX_SIZE_TILE][row][col][0]
@@ -151,6 +150,7 @@ class Visualizer:
         return new_img
 
     def initialize_cam(self):
+
         cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920 / 2)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080 / 2)
@@ -186,3 +186,14 @@ class Visualizer:
         thresh = np.invert(thresh)
         adjusted_img[thresh == 255] = 0
         return adjusted_img
+
+    def window_for_black_white(self, white, i_white, black, i_black):
+        # Resize the images to the same size (optional)
+        white = cv2.resize(white, (0, 0), None, 0.5, 0.5)
+        i_white = cv2.resize(i_white, (0, 0), None, 0.5, 0.5)
+        black = cv2.resize(black, (0, 0), None, 0.5, 0.5)
+        i_black = cv2.resize(i_black, (0, 0), None, 0.5, 0.5)
+        top_row = cv2.hconcat((white, black))
+        bottom_row = cv2.hconcat((i_white, i_black))
+        grid = cv2.vconcat((top_row, bottom_row))
+        return grid

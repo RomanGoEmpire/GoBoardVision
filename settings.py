@@ -10,11 +10,9 @@ HALF_MAX_SIZE = int(MAX_SIZE_TILE / 2)
 
 POINTS = [[200, 200], [400, 200], [400, 400], [200, 400]]
 
-color_brown = (135, 184, 222)  # RGB value for brown
-color_black = (0, 0, 0)  # RGB value for black
-color_white = (255, 255, 255)  # RGB value for white
-
-
+COLOR_WHITE = (255, 255, 255)  # RGB value for white
+COLOR_BLACK = (0, 0, 0)  # RGB value for black
+COLOR_BROWN = (135, 184, 222)  # RGB value for brown
 
 
 def save_points_to_file():
@@ -44,5 +42,6 @@ def calculate_positions():
                 all_sizes[i][j][k][0] = k * dx + HALF_MAX_SIZE + offset
                 all_sizes[i][j][k][1] = j * dy + HALF_MAX_SIZE + offset
     return all_sizes
+
 
 ALL_GRID_POINTS = calculate_positions()
