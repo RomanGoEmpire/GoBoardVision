@@ -5,13 +5,17 @@ class GameEvaluator:
 
     def __init__(self, board_updater):
         self.board_updater = board_updater
+        self.game_history = []
         self.black_stones = 0
         self.black_captured = 0
         self.white_stones = 0
         self.white_captured = 0
         self.is_blacks_turn = True
-        self.game_history = []
         self.frame_counter = 0
+
+    def get_change_at_position(self, position):
+        difference_board = self.board_updater.get_board_differences()
+        return difference_board[position[0]][position[1]]
 
     def get_added_and_removed(self, positions):
         added = 0
@@ -39,6 +43,7 @@ class GameEvaluator:
             return False
         black_valid = self.board_updater.count_black_on_board() + self.black_captured == self.black_stones + 1
         white_valid = self.board_updater.count_white_on_board() + self.white_captured == self.white_stones + 1
+
         if len(changes) == 1:
             is_valid_black_turn = self.is_blacks_turn and black_valid and \
                                   self.board_updater.count_white_on_board() + self.white_captured == self.white_stones
@@ -48,7 +53,7 @@ class GameEvaluator:
 
         if len(changes) > 1:
             added, removed = self.get_added_and_removed(changes)
-            if added == 1:
+            if added == 1:  # and self.remove_is_valid(changes)
                 is_valid_black_turn = self.is_blacks_turn and black_valid and \
                                       self.board_updater.count_white_on_board() + \
                                       self.white_captured + removed == self.white_stones
@@ -57,10 +62,6 @@ class GameEvaluator:
                                       self.black_captured + removed == self.black_stones
                 return is_valid_black_turn or is_valid_white_turn
         return False
-
-    def get_change_at_position(self, position):
-        difference_board = self.board_updater.get_board_differences()
-        return difference_board[position[0]][position[1]]
 
     def update_board(self, positions):
         _, removed = self.get_added_and_removed(positions)
@@ -82,6 +83,14 @@ class GameEvaluator:
                 return tuple(position)
         return RuntimeError('No new added stone found')
 
+    def get_removed_positions(self, positions):
+        removed_position = []
+        for position in positions:
+            value = self.get_change_at_position(position)
+            if value > 0:
+                removed_position.append(position)
+        return removed_position
+
     def save_last_move(self, positions):
         position = self.get_last_move_position(positions)
         color = 'W'
@@ -89,6 +98,18 @@ class GameEvaluator:
         if not self.is_blacks_turn:
             color = 'B'
         self.game_history.append([color, position])
+
+    def remove_is_valid(self, positions):
+        x, y = self.get_last_move_position(positions)
+        board = self.board_updater.last_board.copy()
+        board[x][y] = '1' if self.is_blacks_turn else '2'
+        removed_positions = self.get_removed_positions(positions)
+
+        for move in removed_positions:
+            if self.has_empty_neighbor(move):
+                return False
+        print(board)
+        return True
 
     def print_last_move(self):
         print(self.game_history[-1])

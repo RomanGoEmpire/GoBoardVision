@@ -1,12 +1,13 @@
 import cv2
 import win32gui
 
-from game_evaluator import GameEvaluator
-from slider import Slider
-from board_updater import BoardUpdater
-from settings import WINDOW_SIZE
-from visualizer import Visualizer
-from window_capture import WindowsCapture
+from src.game_evaluator import GameEvaluator
+from src.sgf_converter import SGFConverter
+from src.slider import Slider
+from src.board_updater import BoardUpdater
+from src.settings import WINDOW_SIZE
+from src.visualizer import Visualizer
+from src.window_capture import WindowsCapture
 
 
 def main():
@@ -15,9 +16,9 @@ def main():
     v = Visualizer(slider, updater)
     evaluator = GameEvaluator(updater)
     capture = WindowsCapture()
-    # cap = v.initialize_cam() TODO: Make a switch if you want to get the camera or window
 
-    hwnd = win32gui.FindWindow(None, "Task-Manager")
+    converter = SGFConverter(evaluator.game_history)
+    # cap = v.initialize_cam() TODO: Make a switch if you want to get the camera or window
 
     # Set the mouse callback function
     cv2.namedWindow('camera')
@@ -50,7 +51,6 @@ def main():
 
             changes = updater.get_changed_position()
             if analyzing and evaluator.is_valid_board(changes):
-                print(changes)
                 evaluator.update_board(changes)
                 evaluator.print_last_move()
                 final_board = v.drawn_board(transformed)
@@ -72,6 +72,7 @@ def main():
                 print(evaluator.game_history)
                 print(f"white: {evaluator.white_stones}, captured: {evaluator.black_captured}")
                 print(f"black: {evaluator.black_stones}, captured: {evaluator.white_captured}")
+                converter.create_file('game.sgf')
             else:
                 print('start analysis')
             analyzing = not analyzing

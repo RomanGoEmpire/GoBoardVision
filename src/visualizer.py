@@ -1,14 +1,8 @@
-from ctypes import windll
-
 import cv2
 import numpy as np
-import win32con
-import win32gui
-import win32ui
 
-from settings import WINDOW_SIZE, ROWS, COLS, MAX_SIZE_TILE, POINTS, COLOR_BLACK, ALL_GRID_POINTS, COLOR_BROWN, \
+from src.settings import WINDOW_SIZE, ROWS, COLS, MAX_SIZE_TILE, POINTS, COLOR_BLACK, ALL_GRID_POINTS, COLOR_BROWN, \
     COLOR_WHITE, HALF_MAX_SIZE
-
 
 class Visualizer:
 

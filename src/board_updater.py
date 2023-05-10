@@ -1,6 +1,6 @@
 import numpy as np
 
-from settings import ROWS, COLS
+from src.settings import ROWS, COLS
 
 
 class BoardUpdater:

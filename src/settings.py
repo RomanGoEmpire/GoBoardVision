@@ -1,6 +1,6 @@
 import numpy as np
 
-FILE = 'points.txt'
+FILE = '../points.txt'
 
 WINDOW_SIZE = 400
 ROWS, COLS = 19, 19

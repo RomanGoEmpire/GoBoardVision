@@ -1,6 +1,6 @@
 import cv2
 
-from settings import MAX_SIZE_TILE
+from src.settings import MAX_SIZE_TILE
 
 
 class Slider:
