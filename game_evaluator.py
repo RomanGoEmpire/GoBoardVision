@@ -37,25 +37,24 @@ class GameEvaluator:
         if self.frame_counter < 10:
             self.frame_counter += 1
             return False
-
+        black_valid = self.board_updater.count_black_on_board() + self.black_captured == self.black_stones + 1
+        white_valid = self.board_updater.count_white_on_board() + self.white_captured == self.white_stones + 1
         if len(changes) == 1:
-            is_valid_black_turn = self.is_blacks_turn and \
-                                  self.board_updater.count_black_on_board() + self.black_captured == self.black_stones + 1 and \
+            is_valid_black_turn = self.is_blacks_turn and black_valid and \
                                   self.board_updater.count_white_on_board() + self.white_captured == self.white_stones
-            is_valid_white_turn = not self.is_blacks_turn and \
-                                  self.board_updater.count_white_on_board() + self.white_captured == self.white_stones + 1 and \
+            is_valid_white_turn = not self.is_blacks_turn and white_valid and \
                                   self.board_updater.count_black_on_board() + self.black_captured == self.black_stones
             return is_valid_black_turn or is_valid_white_turn
 
         if len(changes) > 1:
             added, removed = self.get_added_and_removed(changes)
             if added == 1:
-                is_valid_black_turn = self.is_blacks_turn and \
-                                      self.board_updater.count_black_on_board() + self.black_captured == self.black_stones + 1 and \
-                                      self.board_updater.count_white_on_board() + self.white_captured + removed == self.white_stones
-                is_valid_white_turn = not self.is_blacks_turn and \
-                                      self.board_updater.count_white_on_board() + self.white_captured == self.white_stones + 1 and \
-                                      self.board_updater.count_black_on_board() + self.black_captured + removed == self.black_stones
+                is_valid_black_turn = self.is_blacks_turn and black_valid and \
+                                      self.board_updater.count_white_on_board() + \
+                                      self.white_captured + removed == self.white_stones
+                is_valid_white_turn = not self.is_blacks_turn and white_valid and \
+                                      self.board_updater.count_black_on_board() + \
+                                      self.black_captured + removed == self.black_stones
                 return is_valid_black_turn or is_valid_white_turn
         return False
 

@@ -1,5 +1,10 @@
+from ctypes import windll
+
 import cv2
 import numpy as np
+import win32con
+import win32gui
+import win32ui
 
 from settings import WINDOW_SIZE, ROWS, COLS, MAX_SIZE_TILE, POINTS, COLOR_BLACK, ALL_GRID_POINTS, COLOR_BROWN, \
     COLOR_WHITE, HALF_MAX_SIZE
@@ -22,6 +27,58 @@ class Visualizer:
         self.left_star_point = 3 * MAX_SIZE_TILE
         self.middle_star_point = 9 * MAX_SIZE_TILE
         self.right_star_point = 15 * MAX_SIZE_TILE
+
+    @staticmethod
+    def initialize_cam():
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920 / 2)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080 / 2)
+        return cap
+
+
+
+    def get_white(self, image):
+        new_image = image.copy()
+        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
+        gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
+        # Adjust the brightness and contrast
+        alpha = cv2.getTrackbarPos('white_alpha', 'Slider') / 10
+        beta = cv2.getTrackbarPos('white_beta', 'Slider')
+        adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
+        ret, thresh = cv2.threshold(adjusted_img, self.slider.white_threshold, 255, cv2.THRESH_BINARY)
+        thresh = np.invert(thresh)
+        adjusted_img[thresh == 255] = 0
+        return adjusted_img
+
+    def get_black(self, image):
+        new_image = image.copy()
+        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.bitwise_not(gray)
+        gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
+
+        # Adjust the brightness and contrast
+        alpha = cv2.getTrackbarPos('black_alpha', 'Slider') / 10
+        beta = cv2.getTrackbarPos('black_beta', 'Slider')
+        adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
+        ret, thresh = cv2.threshold(adjusted_img, self.slider.black_threshold, 255, cv2.THRESH_BINARY)
+        thresh = np.invert(thresh)
+        adjusted_img[thresh == 255] = 0
+        return adjusted_img
+
+    @staticmethod
+    def window_for_black_white(white, i_white, black, i_black):
+        # Resize the images to the same size (optional)
+        white = cv2.resize(white, (0, 0), None, 0.5, 0.5)
+        i_white = cv2.resize(i_white, (0, 0), None, 0.5, 0.5)
+        black = cv2.resize(black, (0, 0), None, 0.5, 0.5)
+        i_black = cv2.resize(i_black, (0, 0), None, 0.5, 0.5)
+        top_row = cv2.hconcat((white, black))
+        bottom_row = cv2.hconcat((i_white, i_black))
+        grid = cv2.vconcat((top_row, bottom_row))
+        return grid
 
     def move_point(self, event, x, y, flags, param):
         # Declare global variables
@@ -61,7 +118,7 @@ class Visualizer:
                 cv2.rectangle(new_image, (x, y), (x + size, y + size), color=(0, 255, 0), thickness=1)
         return new_image
 
-    def color_identifed_grid_greyscale(self, img, isBlack, size):
+    def color_identified_grid_greyscale(self, img, is_black, size):
         color = self.color_circle
         new_img = np.zeros_like(img)
 
@@ -81,7 +138,7 @@ class Visualizer:
                     color = self.closest_color(color)
 
                     if color == 255:
-                        self.board_updater.recording_board[row][col] = 1 if isBlack else 2
+                        self.board_updater.recording_board[row][col] = 1 if is_black else 2
 
                 cv2.rectangle(new_img, (max_x, max_y), (max_x + MAX_SIZE_TILE, max_y + MAX_SIZE_TILE), color=color,
                               thickness=-1)
@@ -148,52 +205,3 @@ class Visualizer:
                 max_y = ALL_GRID_POINTS[MAX_SIZE_TILE][row][col][1]
                 cv2.circle(new_img, (max_x + HALF_MAX_SIZE, max_y + HALF_MAX_SIZE), HALF_MAX_SIZE, board_color, -1)
         return new_img
-
-    def initialize_cam(self):
-
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920 / 2)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080 / 2)
-        return cap
-
-    def get_white(self, image):
-        new_image = image.copy()
-        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
-        gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
-
-        sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
-        # Adjust the brightness and contrast
-        alpha = cv2.getTrackbarPos('white_alpha', 'Slider') / 10
-        beta = cv2.getTrackbarPos('white_beta', 'Slider')
-        adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
-        ret, thresh = cv2.threshold(adjusted_img, self.slider.white_threshold, 255, cv2.THRESH_BINARY)
-        thresh = np.invert(thresh)
-        adjusted_img[thresh == 255] = 0
-        return adjusted_img
-
-    def get_black(self, image):
-        new_image = image.copy()
-        gray = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.bitwise_not(gray)
-        gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        sharpened = cv2.addWeighted(gray, 1.5, gray_blur, -0.5, 0)
-
-        # Adjust the brightness and contrast
-        alpha = cv2.getTrackbarPos('black_alpha', 'Slider') / 10
-        beta = cv2.getTrackbarPos('black_beta', 'Slider')
-        adjusted_img = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
-        ret, thresh = cv2.threshold(adjusted_img, self.slider.black_threshold, 255, cv2.THRESH_BINARY)
-        thresh = np.invert(thresh)
-        adjusted_img[thresh == 255] = 0
-        return adjusted_img
-
-    def window_for_black_white(self, white, i_white, black, i_black):
-        # Resize the images to the same size (optional)
-        white = cv2.resize(white, (0, 0), None, 0.5, 0.5)
-        i_white = cv2.resize(i_white, (0, 0), None, 0.5, 0.5)
-        black = cv2.resize(black, (0, 0), None, 0.5, 0.5)
-        i_black = cv2.resize(i_black, (0, 0), None, 0.5, 0.5)
-        top_row = cv2.hconcat((white, black))
-        bottom_row = cv2.hconcat((i_white, i_black))
-        grid = cv2.vconcat((top_row, bottom_row))
-        return grid
