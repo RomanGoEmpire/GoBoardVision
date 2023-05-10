@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def hand():
+    return False
+
+
+def is_arr_in_list(myarr, list_arrays):
+    return next((True for elem in list_arrays if np.array_equal(elem, myarr)), False)
+
+
 class GameEvaluator:
 
     def __init__(self, board_updater):
@@ -33,6 +41,8 @@ class GameEvaluator:
         return added, removed
 
     def is_valid_board(self, changes):
+        if hand():
+            return False
         if not np.array_equal(self.board_updater.recording_board, self.board_updater.next_board):
             self.frame_counter = 0
             self.board_updater.update_next_board()
@@ -53,7 +63,7 @@ class GameEvaluator:
 
         if len(changes) > 1:
             added, removed = self.get_added_and_removed(changes)
-            if added == 1:  # and self.remove_is_valid(changes)
+            if added == 1 and self.remove_is_valid(changes):
                 is_valid_black_turn = self.is_blacks_turn and black_valid and \
                                       self.board_updater.count_white_on_board() + \
                                       self.white_captured + removed == self.white_stones
@@ -101,15 +111,44 @@ class GameEvaluator:
 
     def remove_is_valid(self, positions):
         x, y = self.get_last_move_position(positions)
+        print(x,y)
         board = self.board_updater.last_board.copy()
-        board[x][y] = '1' if self.is_blacks_turn else '2'
+        color = '1' if self.is_blacks_turn else '2'
+        opponent = '2' if self.is_blacks_turn else '1'
+        board[x][y] = color
         removed_positions = self.get_removed_positions(positions)
-
-        for move in removed_positions:
-            if self.has_empty_neighbor(move):
-                return False
         print(board)
+        print(removed_positions)
+        for move in removed_positions:
+            if not self.captured(opponent, color, move, board, removed_positions):
+                return False
         return True
 
     def print_last_move(self):
         print(self.game_history[-1])
+
+    def captured(self, opponent, color, move, board, position):
+        x = move[0]
+        y = move[1]
+
+        left_color_and_removed = board[x - 1][y] == color and not is_arr_in_list(np.array([x - 1, y]), position)
+        right_color_and_removed = board[x + 1][y] == color and not is_arr_in_list(np.array([x + 1, y]), position)
+        top_color_and_removed = board[x][y - 1] == color and not is_arr_in_list(np.array([x, y - 1]), position)
+        bottom_color_and_removed = board[x][y + 1] == color and not is_arr_in_list(np.array([x, y + 1]), position)
+
+        print(board[x - 1][y] == color)
+
+        # Check left neighbor if not at left edge
+        if x > 1 and (board[x - 1][y] == 0 or left_color_and_removed):
+            return False
+            # Check right neighbor if not at right edge
+        if x < 19 and (board[x + 1][y] == 0 or right_color_and_removed):
+            return False
+            # Check top neighbor if not at top edge
+        if y > 1 and (board[x][y - 1] == 0 or top_color_and_removed):
+            return False
+            # Check bottom neighbor if not at bottom edge
+        if y < 19 and (board[x][y + 1] == 0 or bottom_color_and_removed):
+            return False
+            # If none of the above conditions are met, return False
+        return True

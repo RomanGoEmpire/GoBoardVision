@@ -1,11 +1,9 @@
 import cv2
 
-from src.settings import MAX_SIZE_TILE
-
-
 class Slider:
 
-    def __init__(self):
+    def __init__(self,settings):
+        self.settings = settings
         self.max_value = 255
         self.max_alpha = 40
         self.max_beta = 100
@@ -31,5 +29,5 @@ class Slider:
         cv2.createTrackbar('white_beta', 'Slider', self.white_beta_value, self.max_beta, self.on_threshold)
         cv2.createTrackbar('black_alpha', 'Slider', self.black_alpha_value, self.max_alpha, self.on_threshold)
         cv2.createTrackbar('black_beta', 'Slider', self.black_beta_value, self.max_beta, self.on_threshold)
-        cv2.createTrackbar('size', 'Slider', self.size, MAX_SIZE_TILE, self.on_threshold)
+        cv2.createTrackbar('size', 'Slider', self.size, self.settings.MAX_SIZE_TILE, self.on_threshold)
         return slider

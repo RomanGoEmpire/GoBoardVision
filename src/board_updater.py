@@ -1,13 +1,12 @@
 import numpy as np
 
-from src.settings import ROWS, COLS
-
 
 class BoardUpdater:
 
-    def __init__(self):
-        self.initial_board = np.zeros((ROWS, COLS))
-        self.last_board = np.zeros((ROWS, COLS))
+    def __init__(self,settings):
+        self.settings = settings
+        self.initial_board = np.zeros((self.settings.ROWS, self.settings.COLS))
+        self.last_board = np.zeros((self.settings.ROWS, self.settings.COLS))
         self.recording_board = self.initial_board.copy()
         self.next_board = self.initial_board.copy()
 

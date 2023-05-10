@@ -1,12 +1,8 @@
-from ctypes import windll
-
 import cv2
 import numpy as np
 import win32con
 import win32gui
 import win32ui
-from PIL.Image import Image
-from mss import mss
 
 
 class WindowsCapture:
@@ -21,24 +17,24 @@ class WindowsCapture:
         hwnd = None
 
         # get the window image data
-        wDC = win32gui.GetWindowDC(hwnd)
-        dcObj = win32ui.CreateDCFromHandle(wDC)
-        cDC = dcObj.CreateCompatibleDC()
-        dataBitMap = win32ui.CreateBitmap()
-        dataBitMap.CreateCompatibleBitmap(dcObj, w, h)
-        cDC.SelectObject(dataBitMap)
-        cDC.BitBlt((0, 0), (w, h), dcObj, (0, 0), win32con.SRCCOPY)
+        w_dc = win32gui.GetWindowDC(hwnd)
+        dc_obj = win32ui.CreateDCFromHandle(w_dc)
+        c_dc = dc_obj.CreateCompatibleDC()
+        data_bit_map = win32ui.CreateBitmap()
+        data_bit_map.CreateCompatibleBitmap(dc_obj, w, h)
+        c_dc.SelectObject(data_bit_map)
+        c_dc.BitBlt((0, 0), (w, h), dc_obj, (0, 0), win32con.SRCCOPY)
 
         # convert the raw data into a format opencv can read
-        signedIntsArray = dataBitMap.GetBitmapBits(True)
-        img = np.fromstring(signedIntsArray, dtype='uint8')
+        signed_ints_array = data_bit_map.GetBitmapBits(True)
+        img = np.fromstring(signed_ints_array, dtype='uint8')
         img.shape = (h, w, 4)
 
         # free resources
-        dcObj.DeleteDC()
-        cDC.DeleteDC()
-        win32gui.ReleaseDC(hwnd, wDC)
-        win32gui.DeleteObject(dataBitMap.GetHandle())
+        dc_obj.DeleteDC()
+        c_dc.DeleteDC()
+        win32gui.ReleaseDC(hwnd, w_dc)
+        win32gui.DeleteObject(data_bit_map.GetHandle())
 
         # drop the alpha channel to work with cv.matchTemplate()
         img = img[..., :3]

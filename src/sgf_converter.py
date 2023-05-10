@@ -10,7 +10,10 @@ class SGFConverter:
 
     def convert_history_to_sgf(self):
         date = self.get_current_date()
-        next_player = 'B' if self.game_history[-1][0] == 'W' else 'W'
+        next_player = 'B'
+        if self.game_history:
+            next_player = 'B' if self.game_history[-1][0] == 'W' else 'W'
+
         text = f"(;GM[1]FF[4]CA[UTF-8]AP[GoBoardVision]KM[6.5]SZ[19]DT[{date}]PL[{next_player}];"
         game = []
         for move in self.game_history:

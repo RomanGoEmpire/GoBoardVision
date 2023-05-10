@@ -1,19 +1,20 @@
 import cv2
-import win32gui
 
 from src.game_evaluator import GameEvaluator
 from src.sgf_converter import SGFConverter
 from src.slider import Slider
 from src.board_updater import BoardUpdater
-from src.settings import WINDOW_SIZE
+from src.settings import Settings
 from src.visualizer import Visualizer
 from src.window_capture import WindowsCapture
 
 
 def main():
-    slider = Slider()
-    updater = BoardUpdater()
-    v = Visualizer(slider, updater)
+    s = Settings()
+    s.initialize()
+    slider = Slider(s)
+    updater = BoardUpdater(s)
+    v = Visualizer(slider, updater, s)
     evaluator = GameEvaluator(updater)
     capture = WindowsCapture()
 
@@ -42,7 +43,7 @@ def main():
 
         if v.M is not None:
             size = cv2.getTrackbarPos('size', 'Slider')
-            transformed = cv2.warpPerspective(frame, v.M, (WINDOW_SIZE, WINDOW_SIZE))
+            transformed = cv2.warpPerspective(frame, v.M, (s.WINDOW_SIZE, s.WINDOW_SIZE))
             white = v.get_white(transformed)
             black = v.get_black(transformed)
             align = v.draw_green_point_grid(transformed, size)
@@ -56,8 +57,9 @@ def main():
                 final_board = v.drawn_board(transformed)
             # cv2.imshow('transformed', transformed)
             grid = v.window_for_black_white(white, identified_white, black, identified_black)
-            cv2.imshow('alinger', align)
-            cv2.imshow('combined', grid)
+            colored_grid = cv2.cvtColor(grid, cv2.COLOR_GRAY2BGR)
+            main = cv2.hconcat([align, colored_grid])
+            cv2.imshow('main', main)
             if final_board is not None:
                 cv2.imshow("Final", final_board)
 
@@ -76,13 +78,12 @@ def main():
             else:
                 print('start analysis')
             analyzing = not analyzing
-        if key == ord('r'):
-            POINTS = [[200, 200], [200, 400], [400, 400], [400, 200]]
         if key == ord('q'):
             break
 
     # cap.release()
     cv2.destroyAllWindows()
+    s.save_points_to_file()
 
 
 if __name__ == '__main__':
